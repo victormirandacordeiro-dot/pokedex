@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokedex - Explore o Mundo Pokémon</title>
+
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <h1>Pokedex</h1>
+    <p class="sub">Digite o nome de um Pokémon para pesquisar</p>
+
+    <div class="busca">
+        <input type="text" id="inputPokemon" 
+               placeholder="Ex: pikachu" 
+               onkeydown="if(event.key==='Enter') buscar()" />
+
+        <button onclick="buscar()">Buscar</button>
+    </div>
+
+    <div id="resultado"></div>
+
+    <script>
+        async function buscar() {
+            const input = document.getElementById('inputPokemon');
+            const nome = input.value.trim();
+            const div = document.getElementById('resultado');
+
+            // Validação simples de campo vazio
+            if (!nome) {
+                div.innerHTML = '<div class="erro">Digite o nome de um Pokémon!</div>';
+                return;
+            }
+
+            // Feedback visual de carregamento
+            div.innerHTML = '<div class="carregando">Buscando Pokémon...</div>';
+
+            try {
+                // CORREÇÃO: Usando template strings com crases (`) para injetar a variável ${nome}
+                const resposta = await fetch(`/api/pokemon/${nome.toLowerCase()}`);
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    // Exibe a mensagem de erro vinda do servidor (ex: 404 ou 500)
+                    div.innerHTML = `<div class="erro">${dados.erro}</div>`;
+                    return;
+                }
+
+                // Gera as tags de tipos dinamicamente
+                const tipos = dados.tipos
+                    .map(t => `<span class="tipo ${t}">${t}</span>`)
+                    .join('');
+
+                // Montagem do card com os dados recebidos
+                div.innerHTML = `
+                <div class="card">
+                    <img src="${dados.imagem}" alt="${dados.nome}" />
+                    
+                    <h2 style="text-transform: capitalize;">${dados.nome}</h2>
+                    
+                    <p class="numero">#${String(dados.id).padStart(3, '0')}</p>
+
+                    <div class="tipos">${tipos}</div>
+
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="label">Altura</div>
+                            <div class="value">${dados.altura}</div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="label">Peso</div>
+                            <div class="value">${dados.peso}</div>
+                        </div>
+                    </div>
+
+                    <div class="habilidades">
+                        <strong>Habilidades:</strong>
+                        <p>${dados.habilidades.join(', ')}</p>
+                    </div>
+                </div>
+                `;
+
+                // Limpa o input e mantém o foco para a próxima busca
+                input.value = '';
+                input.focus();
+
+            } catch (e) {
+                console.error(e);
+                div.innerHTML = '<div class="erro">Erro ao conectar com o servidor. Verifique se o Node está rodando.</div>';
+            }
+        }
+    </script>
+</body>
+</html>
